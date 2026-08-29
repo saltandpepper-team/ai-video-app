@@ -11,7 +11,7 @@ st.title("✂️ AIショート動画 自動切り抜きアプリ")
 st.warning("⚠️ 無料サーバーの制限により、動画は50MB以下（約3〜5分以内）を推奨します。重い動画はフリーズする可能性があります。")
 
 # 1. 基本入力エリア
-api_key = st.text_input("Google AI StudioのAPIキーを入力（AQ.から始まるキー）", type="password")
+api_key = st.secrets["GEMINI_API_KEY"]
 uploaded_file = st.file_uploader("動画ファイルを選択 (MP4など)", type=["mp4", "mov"])
 
 # 2. モード選択
@@ -28,8 +28,8 @@ st.markdown("---")
 
 # 切り抜き処理
 if st.button("切り抜きを開始する"):
-    if not api_key or not uploaded_file:
-        st.warning("APIキーと動画ファイルを両方セットしてください。")
+    if not uploaded_file:
+        st.warning("動画ファイルをセットしてください。")
     elif mode == "⏱️ 手動で時間を指定" and not manual_cuts:
         st.warning("切り抜きたい時間を入力してください。")
     else:
