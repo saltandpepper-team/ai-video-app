@@ -77,4 +77,4 @@ jobs:
       - name: Deploy Hosting, Functions, Firestore rules, Storage rules
         run: |
           firebase deploy --only hosting:app,functions,firestore,storage \
-            --project "$PROJECT_ID" --non-interactive
+            --project "$PROJECT_ID" --non-interactive --force
