@@ -7,9 +7,8 @@ on:
 
 env:
   PROJECT_ID: pstclondrina
-  REGION: asia-northeast1            # Cloud Run のリージョン（東京）
-  FIRESTORE_LOCATION: asia-northeast1 # Firestore の場所（作成後は変更不可）
-  SERVICE: pstc-londrina-ai-video     # Cloud Run サービス名
+  REGION: asia-northeast1             # Functions のリージョン（東京）
+  FIRESTORE_LOCATION: asia-northeast1  # Firestore の場所（作成後は変更不可）
   HOSTING_SITE: pstc-londrina-ai-video # https://pstc-londrina-ai-video.web.app
 
 jobs:
@@ -27,8 +26,11 @@ jobs:
       - name: Enable required APIs
         run: |
           gcloud services enable \
-            run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com \
-            firestore.googleapis.com secretmanager.googleapis.com firebasehosting.googleapis.com \
+            cloudfunctions.googleapis.com run.googleapis.com cloudbuild.googleapis.com \
+            artifactregistry.googleapis.com eventarc.googleapis.com \
+            firestore.googleapis.com firebasehosting.googleapis.com \
+            firebasestorage.googleapis.com identitytoolkit.googleapis.com \
+            secretmanager.googleapis.com \
             --project "$PROJECT_ID"
 
       - name: Create Firestore database (first run only)
@@ -49,45 +51,19 @@ jobs:
           if [ "$CURRENT" != "$GEMINI_API_KEY" ]; then
             printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=- --project "$PROJECT_ID"
           fi
-          PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
-          RUNTIME_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
-          gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
-            --member="serviceAccount:${RUNTIME_SA}" --role=roles/secretmanager.secretAccessor \
-            --project "$PROJECT_ID" >/dev/null
-          gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-            --member="serviceAccount:${RUNTIME_SA}" --role=roles/datastore.user \
-            --condition=None >/dev/null
-
-      - name: Deploy Streamlit app to Cloud Run
-        run: |
-          gcloud run deploy "$SERVICE" \
-            --source . \
-            --region "$REGION" \
-            --project "$PROJECT_ID" \
-            --allow-unauthenticated \
-            --memory 2Gi --cpu 2 \
-            --timeout 3600 \
-            --concurrency 10 \
-            --session-affinity \
-            --set-env-vars GOOGLE_CLOUD_PROJECT="$PROJECT_ID" \
-            --set-secrets GEMINI_API_KEY=GEMINI_API_KEY:latest \
-            --quiet
-
-      - name: Build hosting page
-        run: |
-          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format='value(status.url)')
-          mkdir -p hosting/public
-          sed "s#__CLOUD_RUN_URL__#${URL}#" hosting/index.template.html > hosting/public/index.html
-          echo "Cloud Run URL: $URL"
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Deploy Firebase Hosting and Firestore rules
+      - name: Ensure Hosting site exists
         run: |
           npm install -g firebase-tools
           if ! firebase hosting:sites:get "$HOSTING_SITE" --project "$PROJECT_ID" >/dev/null 2>&1; then
             firebase hosting:sites:create "$HOSTING_SITE" --project "$PROJECT_ID"
           fi
-          firebase deploy --only hosting:app,firestore --project "$PROJECT_ID" --non-interactive
+
+      - name: Deploy Hosting, Functions, Firestore rules, Storage rules
+        run: |
+          firebase deploy --only hosting:app,functions,firestore,storage \
+            --project "$PROJECT_ID" --non-interactive

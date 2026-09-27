@@ -1,5 +1,4 @@
 __pycache__/
 .firebase/
-.streamlit/secrets.toml
-short_*.mp4
-hosting/public/
+node_modules/
+functions/venv/

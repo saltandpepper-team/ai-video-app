@@ -2,19 +2,30 @@
   "hosting": [
     {
       "target": "app",
-      "public": "hosting/public",
-      "ignore": ["firebase.json", "**/.*"],
+      "public": "public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "headers": [
         {
           "source": "/index.html",
           "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
         }
-      ]
+      ],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    }
+  ],
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "python312"
     }
   ],
   "firestore": {
     "database": "(default)",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
