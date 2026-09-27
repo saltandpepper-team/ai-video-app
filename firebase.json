@@ -1,0 +1,20 @@
+{
+  "hosting": [
+    {
+      "target": "app",
+      "public": "hosting/public",
+      "ignore": ["firebase.json", "**/.*"],
+      "headers": [
+        {
+          "source": "/index.html",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        }
+      ]
+    }
+  ],
+  "firestore": {
+    "database": "(default)",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

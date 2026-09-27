@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// アプリは Cloud Run 上のサーバー（サービスアカウント権限）からのみ Firestore にアクセスする。
+// サーバー権限はルールの対象外なので、ブラウザからの直接アクセスはすべて拒否する。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

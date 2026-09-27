@@ -1,0 +1,7 @@
+.git
+.github
+hosting
+.firebase
+__pycache__
+*.mp4
+.streamlit/secrets.toml

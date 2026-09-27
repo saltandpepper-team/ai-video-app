@@ -1,17 +1,59 @@
 import streamlit as st
 from google import genai
+import os
 import json
 import time
 import tempfile
+from datetime import datetime, timezone
 from moviepy.editor import VideoFileClip
+
+
+# Firestore（Cloud Run 上ではサービスアカウントで自動認証。使えない環境では履歴機能だけ無効になる）
+@st.cache_resource
+def get_db():
+    try:
+        from google.cloud import firestore
+        return firestore.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT", "pstclondrina"))
+    except Exception:
+        return None
+
+
+def save_job(mode, file_name, highlights):
+    db = get_db()
+    if db is None:
+        return
+    try:
+        db.collection("clip_jobs").add({
+            "created_at": datetime.now(timezone.utc),
+            "mode": mode,
+            "file_name": file_name,
+            "highlights": highlights,
+        })
+    except Exception as e:
+        st.caption(f"履歴の保存に失敗しました: {e}")
+
+
+def load_recent_jobs(limit=10):
+    db = get_db()
+    if db is None:
+        return []
+    try:
+        from google.cloud import firestore
+        docs = (db.collection("clip_jobs")
+                .order_by("created_at", direction=firestore.Query.DESCENDING)
+                .limit(limit).stream())
+        return [d.to_dict() for d in docs]
+    except Exception:
+        return []
+
 
 # 画面のデザイン設定
 st.set_page_config(page_title="AIショート動画職人", page_icon="✂️")
 st.title("✂️ AIショート動画 自動切り抜きアプリ")
-st.warning("⚠️ 無料サーバーの制限により、動画は50MB以下（約3〜5分以内）を推奨します。重い動画はフリーズする可能性があります。")
+st.warning("⚠️ サーバーの制限により、動画は32MB以下（約3分以内）にしてください。重い動画はフリーズする可能性があります。")
 
 # 1. 基本入力エリア
-api_key = st.secrets["GEMINI_API_KEY"]
+api_key = os.environ.get("GEMINI_API_KEY") or st.secrets["GEMINI_API_KEY"]
 uploaded_file = st.file_uploader("動画ファイルを選択 (MP4など)", type=["mp4", "mov"])
 
 # 2. モード選択
@@ -130,6 +172,7 @@ if st.button("切り抜きを開始する"):
                 created_files.append((output_filename, title))
             
             original_clip.close()
+            save_job(mode, uploaded_file.name, highlights)
             
             # 完成
             progress_bar.progress(100)
@@ -142,3 +185,15 @@ if st.button("切り抜きを開始する"):
                 
         except Exception as e:
             st.error(f"エラーが発生しました: {e}")
+
+# 過去の切り抜き履歴（Firestore）
+recent_jobs = load_recent_jobs()
+if recent_jobs:
+    st.markdown("---")
+    with st.expander("🕘 最近の切り抜き履歴"):
+        for job in recent_jobs:
+            created = job.get("created_at")
+            created_str = created.strftime("%Y-%m-%d %H:%M") if created else ""
+            st.write(f"**{job.get('file_name', '')}**（{job.get('mode', '')}） {created_str} UTC")
+            for h in job.get("highlights", []):
+                st.write(f"- {h.get('start')}〜{h.get('end')}秒: {h.get('title')}")
