@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// clip_jobs は Cloud Functions（Admin SDK、ルールの対象外）が書き込む。
+// ブラウザからは、自分の(uid が一致する)ジョブだけを読み取れる。書き込みは常に禁止。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /clip_jobs/{jobId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

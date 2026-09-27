@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "pstclondrina"
+  },
+  "targets": {
+    "pstclondrina": {
+      "hosting": {
+        "app": ["pstc-londrina-ai-video"]
+      }
+    }
+  }
+}
