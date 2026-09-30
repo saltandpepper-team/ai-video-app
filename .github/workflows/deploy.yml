@@ -78,3 +78,8 @@ jobs:
         run: |
           firebase deploy --only hosting:app,functions,firestore,storage \
             --project "$PROJECT_ID" --non-interactive --force
+
+      - name: Apply Storage CORS config (ブラウザから直接アップロードするために必要)
+        run: |
+          gcloud storage buckets update "gs://${PROJECT_ID}.firebasestorage.app" \
+            --cors-file=storage-cors.json --project "$PROJECT_ID"
