@@ -86,6 +86,8 @@ jobs:
 
       - name: Allow unauthenticated invocations of process_video (ブラウザから直接呼び出すため)
         run: |
-          gcloud run services add-iam-policy-binding process_video \
-            --region="$REGION" --member="allUsers" --role="roles/run.invoker" \
+          # Cloud Run 上のサービス名は "_" が使えず "-" に変換されるため、
+          # 関数名から直接IAMを解決してくれる functions 側のコマンドを使う
+          gcloud functions add-invoker-policy-binding process_video \
+            --region="$REGION" --member="allUsers" --gen2 \
             --project "$PROJECT_ID"
