@@ -5,7 +5,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /clip_jobs/{jobId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      // resource はドキュメントがまだ存在しない場合 null になる。ジョブ作成前から
+      // 購読を始める(アップロード完了直後に監視を開始する)ため、null も許可する。
+      allow read: if request.auth != null
+        && (resource == null || request.auth.uid == resource.data.uid);
       allow write: if false;
     }
 
