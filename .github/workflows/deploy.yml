@@ -83,3 +83,9 @@ jobs:
         run: |
           gcloud storage buckets update "gs://${PROJECT_ID}.firebasestorage.app" \
             --cors-file=storage-cors.json --project "$PROJECT_ID"
+
+      - name: Allow unauthenticated invocations of process_video (ブラウザから直接呼び出すため)
+        run: |
+          gcloud run services add-iam-policy-binding process_video \
+            --region="$REGION" --member="allUsers" --role="roles/run.invoker" \
+            --project "$PROJECT_ID"
